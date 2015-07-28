@@ -136,7 +136,8 @@ class ContentType implements HeaderInterface
             throw new Exception\InvalidArgumentException('Invalid content-type parameter name detected');
         }
         if (! HeaderValue::isValid($value)) {
-            throw new Exception\InvalidArgumentException('Invalid content-type parameter value detected');
+            // bh - disabled to allow syncing mails with invalid characters on content-type values
+            // throw new Exception\InvalidArgumentException('Invalid content-type parameter value detected');
         }
 
         $this->parameters[$name] = $value;

@@ -58,7 +58,8 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
         }
 
         if (! HeaderValue::isValid($parts[1])) {
-            throw new Exception\InvalidArgumentException('Invalid header value detected');
+            // bh - disabled to allow syncing mails with invalid characters on header values
+            // throw new Exception\InvalidArgumentException('Invalid header value detected');
         }
 
         $parts[0] = $parts[0];

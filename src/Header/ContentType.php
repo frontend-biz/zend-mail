@@ -136,7 +136,7 @@ class ContentType implements HeaderInterface
             throw new Exception\InvalidArgumentException('Invalid content-type parameter name detected');
         }
         if (! HeaderValue::isValid($value)) {
-            throw new Exception\InvalidArgumentException('Invalid content-type parameter value detected');
+            // throw new Exception\InvalidArgumentException('Invalid content-type parameter value detected');
         }
 
         $this->parameters[$name] = $value;

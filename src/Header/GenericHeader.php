@@ -58,7 +58,7 @@ class GenericHeader implements HeaderInterface, UnstructuredInterface
         }
 
         if (! HeaderValue::isValid($parts[1])) {
-            throw new Exception\InvalidArgumentException('Invalid header value detected');
+            // throw new Exception\InvalidArgumentException('Invalid header value detected');
         }
 
         $parts[0] = $parts[0];

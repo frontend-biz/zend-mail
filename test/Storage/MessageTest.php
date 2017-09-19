@@ -3,88 +3,88 @@
  * Zend Framework (http://framework.zend.com/)
  *
  * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright Copyright (c) 2005-2016 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   http://framework.zend.com/license/new-bsd New BSD License
  */
 
 namespace ZendTest\Mail\Storage;
 
-use Zend\Mime;
-use Zend\Mime\Exception as MimeException;
+use Exception as GeneralException;
+use PHPUnit\Framework\TestCase;
 use Zend\Mail\Exception as MailException;
 use Zend\Mail\Storage;
 use Zend\Mail\Storage\Exception;
 use Zend\Mail\Storage\Message;
+use Zend\Mime;
+use Zend\Mime\Exception as MimeException;
 
 /**
  * @group      Zend_Mail
+ * @covers Zend\Mail\Storage\Message<extended>
  */
-class MessageTest extends \PHPUnit_Framework_TestCase
+class MessageTest extends TestCase
 {
-    protected $_file;
+    protected $file;
+    protected $file2;
 
     public function setUp()
     {
-        $this->_file = __DIR__ . '/../_files/mail.txt';
+        $this->file = __DIR__ . '/../_files/mail.txt';
+        $this->file2 = __DIR__ . '/../_files/mail_multi_to.txt';
     }
 
     public function testInvalidFile()
     {
-        try {
-            $message = new Message(['file' => '/this/file/does/not/exists']);
-        } catch (\Exception $e) {
-            return; // ok
-        }
-
-        $this->fail('no exception raised while loading unknown file');
+        $this->expectException(GeneralException::class);
+        new Message(['file' => '/this/file/does/not/exists']);
     }
 
-    public function testIsMultipart()
+    /**
+     * @dataProvider filesProvider
+     */
+    public function testIsMultipart($params)
     {
-        $message = new Message(['file' => $this->_file]);
-
+        $message = new Message($params);
         $this->assertTrue($message->isMultipart());
     }
 
-    public function testGetHeader()
+    /**
+     * @dataProvider filesProvider
+     */
+    public function testGetHeader($params)
     {
-        $message = new Message(['file' => $this->_file]);
-
+        $message = new Message($params);
         $this->assertEquals($message->subject, 'multipart');
     }
 
-    public function testGetDecodedHeader()
+    /**
+     * @dataProvider filesProvider
+     */
+    public function testGetDecodedHeader($params)
     {
-        $message = new Message(['file' => $this->_file]);
-
+        $message = new Message($params);
         $this->assertEquals('Peter Müller <peter-mueller@example.com>', $message->from);
     }
 
-    public function testGetHeaderAsArray()
+    /**
+     * @dataProvider filesProvider
+     */
+    public function testGetHeaderAsArray($params)
     {
-        $message = new Message(['file' => $this->_file]);
-
-        $this->assertEquals($message->getHeader('subject', 'array'), ['multipart']);
-    }
-
-    public function testGetHeaderFromOpenFile()
-    {
-        $fh = fopen($this->_file, 'r');
-        $message = new Message(['file' => $fh]);
-
-        $this->assertEquals($message->subject, 'multipart');
+        $message = new Message($params);
+        $this->assertEquals(['multipart'], $message->getHeader('subject', 'array'), 'getHeader() value not match');
     }
 
     public function testGetFirstPart()
     {
-        $message = new Message(['file' => $this->_file]);
+        $message = new Message(['file' => $this->file]);
 
         $this->assertEquals(substr($message->getPart(1)->getContent(), 0, 14), 'The first part');
     }
 
     public function testGetFirstPartTwice()
     {
-        $message = new Message(['file' => $this->_file]);
+        $message = new Message(['file' => $this->file]);
 
         $message->getPart(1);
         $this->assertEquals(substr($message->getPart(1)->getContent(), 0, 14), 'The first part');
@@ -93,15 +93,9 @@ class MessageTest extends \PHPUnit_Framework_TestCase
 
     public function testGetWrongPart()
     {
-        $message = new Message(['file' => $this->_file]);
-
-        try {
-            $message->getPart(-1);
-        } catch (\Exception $e) {
-            return; // ok
-        }
-
-        $this->fail('no exception raised while fetching unknown part');
+        $this->expectException(GeneralException::class);
+        $message = new Message(['file' => $this->file]);
+        $message->getPart(-1);
     }
 
     public function testNoHeaderMessage()
@@ -119,23 +113,29 @@ class MessageTest extends \PHPUnit_Framework_TestCase
 
     public function testMultipleHeader()
     {
-        $raw = file_get_contents($this->_file);
-        $raw = "sUBject: test\nSubJect: test2\n" . $raw;
+        $raw = file_get_contents($this->file);
+        $raw = "sUBject: test\r\nSubJect: test2\r\n" . $raw;
         $message = new Message(['raw' => $raw]);
 
-        $this->assertEquals('test' . Mime\Mime::LINEEND . 'test2' . Mime\Mime::LINEEND . 'multipart',
-                            $message->getHeader('subject', 'string'));
+        $this->assertEquals(
+            'test' . Mime\Mime::LINEEND . 'test2' . Mime\Mime::LINEEND . 'multipart',
+            $message->getHeader('subject', 'string')
+        );
 
-        $this->assertEquals(['test', 'test2', 'multipart'],
-                            $message->getHeader('subject', 'array'));
+        $this->assertEquals(
+            ['test', 'test2', 'multipart'],
+            $message->getHeader('subject', 'array')
+        );
     }
 
     public function testContentTypeDecode()
     {
-        $message = new Message(['file' => $this->_file]);
+        $message = new Message(['file' => $this->file]);
 
-        $this->assertEquals(Mime\Decode::splitContentType($message->ContentType),
-                            ['type' => 'multipart/alternative', 'boundary' => 'crazy-multipart']);
+        $this->assertEquals(
+            Mime\Decode::splitContentType($message->ContentType),
+            ['type' => 'multipart/alternative', 'boundary' => 'crazy-multipart']
+        );
     }
 
     public function testSplitEmptyMessage()
@@ -145,42 +145,26 @@ class MessageTest extends \PHPUnit_Framework_TestCase
 
     public function testSplitInvalidMessage()
     {
-        try {
-            Mime\Decode::splitMessageStruct("--xxx\n", 'xxx');
-        } catch (MimeException\ExceptionInterface $e) {
-            return; // ok
-        }
-
-        $this->fail('no exception raised while decoding invalid message');
+        $this->expectException(MimeException\ExceptionInterface::class);
+        Mime\Decode::splitMessageStruct("--xxx\n", 'xxx');
     }
 
     public function testInvalidMailHandler()
     {
-        try {
-            $message = new Message(['handler' => 1]);
-        } catch (Exception\InvalidArgumentException $e) {
-            return; // ok
-        }
-
-        $this->fail('no exception raised while using invalid mail handler');
+        $this->expectException(Exception\InvalidArgumentException::class);
+        new Message(['handler' => 1]);
     }
 
     public function testMissingId()
     {
+        $this->expectException(Exception\InvalidArgumentException::class);
         $mail = new Storage\Mbox(['filename' => __DIR__ . '/../_files/test.mbox/INBOX']);
-
-        try {
-            $message = new Message(['handler' => $mail]);
-        } catch (Exception\InvalidArgumentException $e) {
-            return; // ok
-        }
-
-        $this->fail('no exception raised while mail handler without id');
+        new Message(['handler' => $mail]);
     }
 
     public function testIterator()
     {
-        $message = new Message(['file' => $this->_file]);
+        $message = new Message(['file' => $this->file]);
         foreach (new \RecursiveIteratorIterator($message) as $num => $part) {
             if ($num == 1) {
                 // explicit call of __toString() needed for PHP < 5.2
@@ -208,14 +192,9 @@ class MessageTest extends \PHPUnit_Framework_TestCase
 
     public function testSplitInvalidHeader()
     {
+        $this->expectException(MimeException\ExceptionInterface::class);
         $header = '';
-        try {
-            Mime\Decode::splitHeaderField($header);
-        } catch (MimeException\ExceptionInterface $e) {
-            return; // ok
-        }
-
-        $this->fail('no exception raised while decoding invalid header field');
+        Mime\Decode::splitHeaderField($header);
     }
 
     public function testSplitMessage()
@@ -239,21 +218,15 @@ class MessageTest extends \PHPUnit_Framework_TestCase
 
     public function testToplines()
     {
-        $message = new Message(['headers' => file_get_contents($this->_file)]);
+        $message = new Message(['headers' => file_get_contents($this->file)]);
         $this->assertStringStartsWith('multipart message', $message->getToplines());
     }
 
     public function testNoContent()
     {
+        $this->expectException(Exception\RuntimeException::class);
         $message = new Message(['raw' => 'Subject: test']);
-
-        try {
-            $message->getContent();
-        } catch (Exception\RuntimeException $e) {
-            return; // ok
-        }
-
-        $this->fail('no exception raised while getting content of message without body');
+        $message->getContent();
     }
 
     public function testEmptyHeader()
@@ -264,8 +237,20 @@ class MessageTest extends \PHPUnit_Framework_TestCase
         $message = new Message([]);
         $subject = null;
 
-        $this->setExpectedException('Zend\\Mail\\Exception\\InvalidArgumentException');
+        $this->expectException('Zend\\Mail\\Exception\\InvalidArgumentException');
         $message->subject;
+    }
+
+    public function testWrongHeaderType()
+    {
+        // @codingStandardsIgnoreStart
+        $badMessage = unserialize(
+            "O:25:\"Zend\Mail\Storage\Message\":9:{s:8:\"\x00*\x00flags\";a:0:{}s:10:\"\x00*\x00headers\";s:16:\"Yellow submarine\";s:10:\"\x00*\x00content\";N;s:11:\"\x00*\x00topLines\";s:0:\"\";s:8:\"\x00*\x00parts\";a:0:{}s:13:\"\x00*\x00countParts\";N;s:15:\"\x00*\x00iterationPos\";i:1;s:7:\"\x00*\x00mail\";N;s:13:\"\x00*\x00messageNum\";i:0;}"
+        );
+        // @codingStandardsIgnoreEnd
+
+        $this->expectException(MailException\RuntimeException::class);
+        $badMessage->getHeaders();
     }
 
     public function testEmptyBody()
@@ -301,14 +286,9 @@ class MessageTest extends \PHPUnit_Framework_TestCase
 
     public function testWrongMultipart()
     {
+        $this->expectException(Exception\RuntimeException::class);
         $message = new Message(['raw' => "Content-Type: multipart/mixed\r\n\r\ncontent"]);
-
-        try {
-            $message->getPart(1);
-        } catch (Exception\RuntimeException $e) {
-            return; // ok
-        }
-        $this->fail('no exception raised while getting part from message without boundary');
+        $message->getPart(1);
     }
 
     public function testLateFetch()
@@ -328,7 +308,7 @@ class MessageTest extends \PHPUnit_Framework_TestCase
 
     public function testManualIterator()
     {
-        $message = new Message(['file' => $this->_file]);
+        $message = new Message(['file' => $this->file]);
 
         $this->assertTrue($message->valid());
         $this->assertEquals($message->getChildren(), $message->current());
@@ -364,37 +344,33 @@ class MessageTest extends \PHPUnit_Framework_TestCase
 
     public function testGetHeaderFieldSingle()
     {
-        $message = new Message(['file' => $this->_file]);
+        $message = new Message(['file' => $this->file]);
         $this->assertEquals($message->getHeaderField('subject'), 'multipart');
     }
 
     public function testGetHeaderFieldDefault()
     {
-        $message = new Message(['file' => $this->_file]);
+        $message = new Message(['file' => $this->file]);
         $this->assertEquals($message->getHeaderField('content-type'), 'multipart/alternative');
     }
 
     public function testGetHeaderFieldNamed()
     {
-        $message = new Message(['file' => $this->_file]);
+        $message = new Message(['file' => $this->file]);
         $this->assertEquals($message->getHeaderField('content-type', 'boundary'), 'crazy-multipart');
     }
 
     public function testGetHeaderFieldMissing()
     {
-        $message = new Message(['file' => $this->_file]);
+        $message = new Message(['file' => $this->file]);
         $this->assertNull($message->getHeaderField('content-type', 'foo'));
     }
 
     public function testGetHeaderFieldInvalid()
     {
-        $message = new Message(['file' => $this->_file]);
-        try {
-            $message->getHeaderField('fake-header-name', 'foo');
-        } catch (MailException\ExceptionInterface $e) {
-            return;
-        }
-        $this->fail('No exception thrown while requesting invalid field name');
+        $this->expectException(MailException\ExceptionInterface::class);
+        $message = new Message(['file' => $this->file]);
+        $message->getHeaderField('fake-header-name', 'foo');
     }
 
     public function testCaseInsensitiveMultipart()
@@ -422,10 +398,34 @@ class MessageTest extends \PHPUnit_Framework_TestCase
      */
     public function testStrictParseMessage()
     {
-        $this->setExpectedException('Zend\\Mail\\Exception\\RuntimeException');
+        $this->expectException('Zend\\Mail\\Exception\\RuntimeException');
 
-        $raw = file_get_contents($this->_file);
+        $raw = file_get_contents($this->file);
         $raw = "From foo@example.com  Sun Jan 01 00:00:00 2000\n" . $raw;
         $message = new Message(['raw' => $raw, 'strict' => true]);
+    }
+
+    public function testMultivalueToHeader()
+    {
+        $message = new Message(['file' => $this->file2]);
+        /** @var \Zend\Mail\Header\To $header */
+        $header = $message->getHeader('to');
+        $addressList = $header->getAddressList();
+        $this->assertEquals(2, $addressList->count());
+        $this->assertEquals('nicpoń', $addressList->get('bar@example.pl')->getName());
+    }
+
+    public function filesProvider()
+    {
+        $filePath = __DIR__ . '/../_files/mail.txt';
+        $fileBlankLineOnTop = __DIR__ . '/../_files/mail_blank_top_line.txt';
+
+        return [
+            // Description => [params]
+            'resource'                    => [['file' => fopen($filePath, 'r')]],
+            'file path'                   => [['file' => $filePath]],
+            'raw'                         => [['raw'  => file_get_contents($filePath)]],
+            'file with blank line on top' => [['file' => $fileBlankLineOnTop]],
+        ];
     }
 }

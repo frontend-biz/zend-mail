@@ -3,44 +3,45 @@
  * Zend Framework (http://framework.zend.com/)
  *
  * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright Copyright (c) 2005-2016 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   http://framework.zend.com/license/new-bsd New BSD License
  */
 
 namespace ZendTest\Mail\Storage;
 
+use PHPUnit\Framework\TestCase;
 use Zend\Config;
 use Zend\Mail\Storage;
 
 /**
  * @group      Zend_Mail
  */
-class MaildirTest extends \PHPUnit_Framework_TestCase
+class MaildirTest extends TestCase
 {
-    protected $_originalMaildir;
-    protected $_maildir;
-    protected $_tmpdir;
+    protected $originalMaildir;
+    protected $maildir;
+    protected $tmpdir;
 
     public function setUp()
     {
-        $this->_originalMaildir = __DIR__ . '/../_files/test.maildir/';
-        if (!getenv('TESTS_ZEND_MAIL_MAILDIR_ENABLED')) {
+        $this->originalMaildir = __DIR__ . '/../_files/test.maildir/';
+        if (! getenv('TESTS_ZEND_MAIL_MAILDIR_ENABLED')) {
             $this->markTestSkipped('You have to unpack maildir.tar in Zend/Mail/_files/test.maildir/ '
                                  . 'directory before enabling the maildir tests');
             return;
         }
 
-        if ($this->_tmpdir == null) {
+        if ($this->tmpdir == null) {
             if (getenv('TESTS_ZEND_MAIL_TEMPDIR') != null) {
-                $this->_tmpdir = getenv('TESTS_ZEND_MAIL_TEMPDIR');
+                $this->tmpdir = getenv('TESTS_ZEND_MAIL_TEMPDIR');
             } else {
-                $this->_tmpdir = __DIR__ . '/../_files/test.tmp/';
+                $this->tmpdir = __DIR__ . '/../_files/test.tmp/';
             }
-            if (!file_exists($this->_tmpdir)) {
-                mkdir($this->_tmpdir);
+            if (! file_exists($this->tmpdir)) {
+                mkdir($this->tmpdir);
             }
             $count = 0;
-            $dh = opendir($this->_tmpdir);
+            $dh = opendir($this->tmpdir);
             while (readdir($dh) !== false) {
                 ++$count;
             }
@@ -51,17 +52,17 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
             }
         }
 
-        $this->_maildir = $this->_tmpdir;
+        $this->maildir = $this->tmpdir;
 
         foreach (['cur', 'new'] as $dir) {
-            mkdir($this->_tmpdir . $dir);
-            $dh = opendir($this->_originalMaildir . $dir);
+            mkdir($this->tmpdir . $dir);
+            $dh = opendir($this->originalMaildir . $dir);
             while (($entry = readdir($dh)) !== false) {
                 $entry = $dir . '/' . $entry;
-                if (!is_file($this->_originalMaildir . $entry)) {
+                if (! is_file($this->originalMaildir . $entry)) {
                     continue;
                 }
-                copy($this->_originalMaildir . $entry, $this->_tmpdir . $entry);
+                copy($this->originalMaildir . $entry, $this->tmpdir . $entry);
             }
             closedir($dh);
         }
@@ -70,75 +71,75 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
     public function tearDown()
     {
         foreach (['cur', 'new'] as $dir) {
-            if (!is_dir($this->_tmpdir . $dir)) {
+            if (! is_dir($this->tmpdir . $dir)) {
                 continue;
             }
-            $dh = opendir($this->_tmpdir . $dir);
+            $dh = opendir($this->tmpdir . $dir);
             while (($entry = readdir($dh)) !== false) {
-                $entry = $this->_tmpdir . $dir . '/' . $entry;
-                if (!is_file($entry)) {
+                $entry = $this->tmpdir . $dir . '/' . $entry;
+                if (! is_file($entry)) {
                     continue;
                 }
                 unlink($entry);
             }
             closedir($dh);
-            rmdir($this->_tmpdir . $dir);
+            rmdir($this->tmpdir . $dir);
         }
     }
 
     public function testLoadOk()
     {
-        new Storage\Maildir(['dirname' => $this->_maildir]);
+        new Storage\Maildir(['dirname' => $this->maildir]);
     }
 
     public function testLoadConfig()
     {
-        new Storage\Maildir(new Config\Config(['dirname' => $this->_maildir]));
+        new Storage\Maildir(new Config\Config(['dirname' => $this->maildir]));
     }
 
     public function testLoadFailure()
     {
-        $this->setExpectedException('Zend\Mail\Storage\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Storage\Exception\InvalidArgumentException');
         new Storage\Maildir(['dirname' => '/This/Dir/Does/Not/Exist']);
     }
 
     public function testLoadInvalid()
     {
-        $this->setExpectedException('Zend\Mail\Storage\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Storage\Exception\InvalidArgumentException');
         new Storage\Maildir(['dirname' => __DIR__]);
     }
 
     public function testClose()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $mail->close();
     }
 
     public function testHasTop()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $this->assertTrue($mail->hasTop);
     }
 
     public function testHasCreate()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $this->assertFalse($mail->hasCreate);
     }
 
     public function testNoop()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $mail->noop();
     }
 
     public function testCount()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $count = $mail->countMessages();
         $this->assertEquals(5, $count);
@@ -146,7 +147,7 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 
     public function testSize()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
         $shouldSizes = [1 => 397, 89, 694, 452, 497];
 
 
@@ -156,7 +157,7 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 
     public function testSingleSize()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $size = $mail->getSize(2);
         $this->assertEquals(89, $size);
@@ -164,7 +165,7 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 
     public function testFetchHeader()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $subject = $mail->getMessage(1)->subject;
         $this->assertEquals('Simple Message', $subject);
@@ -173,7 +174,7 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 /*
     public function testFetchTopBody()
     {
-        $mail = new Storage\Maildir(array('dirname' => $this->_maildir));
+        $mail = new Storage\Maildir(array('dirname' => $this->maildir));
 
         $content = $mail->getHeader(3, 1)->getContent();
         $this->assertEquals('Fair river! in thy bright, clear flow', trim($content));
@@ -181,7 +182,7 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 */
     public function testFetchMessageHeader()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $subject = $mail->getMessage(1)->subject;
         $this->assertEquals('Simple Message', $subject);
@@ -189,7 +190,7 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 
     public function testFetchMessageBody()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $content = $mail->getMessage(3)->getContent();
         list($content) = explode("\n", $content, 2);
@@ -198,31 +199,31 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 
     public function testFetchWrongSize()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
-        $this->setExpectedException('Zend\Mail\Storage\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Storage\Exception\InvalidArgumentException');
         $mail->getSize(0);
     }
 
     public function testFetchWrongMessageBody()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
-        $this->setExpectedException('Zend\Mail\Storage\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Storage\Exception\InvalidArgumentException');
         $mail->getMessage(0);
     }
 
     public function testFailedRemove()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
-        $this->setExpectedException('Zend\Mail\Storage\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Storage\Exception\InvalidArgumentException');
         $mail->removeMessage(1);
     }
 
     public function testHasFlag()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $this->assertFalse($mail->getMessage(5)->hasFlag(Storage::FLAG_SEEN));
         $this->assertTrue($mail->getMessage(5)->hasFlag(Storage::FLAG_RECENT));
@@ -232,7 +233,7 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 
     public function testGetFlags()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $flags = $mail->getMessage(1)->getFlags();
         $this->assertTrue(isset($flags[Storage::FLAG_SEEN]));
@@ -241,7 +242,7 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 
     public function testUniqueId()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $this->assertTrue($mail->hasUniqueId);
         $this->assertEquals(1, $mail->getNumberByUniqueId($mail->getUniqueId(1)));
@@ -260,33 +261,33 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 
     public function testWrongUniqueId()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
-        $this->setExpectedException('Zend\Mail\Storage\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Storage\Exception\InvalidArgumentException');
         $mail->getNumberByUniqueId('this_is_an_invalid_id');
     }
 
     public function isFileTest($dir)
     {
-        if (file_exists($this->_maildir . '/' . $dir)) {
-            rename($this->_maildir . '/' . $dir, $this->_maildir . '/' . $dir . 'bak');
+        if (file_exists($this->maildir . '/' . $dir)) {
+            rename($this->maildir . '/' . $dir, $this->maildir . '/' . $dir . 'bak');
         }
-        touch($this->_maildir . '/' . $dir);
+        touch($this->maildir . '/' . $dir);
 
         $check = false;
         try {
-            $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+            $mail = new Storage\Maildir(['dirname' => $this->maildir]);
         } catch (\Exception $e) {
             $check = true;
             // test ok
         }
 
-        unlink($this->_maildir . '/' . $dir);
-        if (file_exists($this->_maildir . '/' . $dir . 'bak')) {
-            rename($this->_maildir . '/' . $dir . 'bak', $this->_maildir . '/' . $dir);
+        unlink($this->maildir . '/' . $dir);
+        if (file_exists($this->maildir . '/' . $dir . 'bak')) {
+            rename($this->maildir . '/' . $dir . 'bak', $this->maildir . '/' . $dir);
         }
 
-        if (!$check) {
+        if (! $check) {
             $this->fail('no exception while loading invalid dir with ' . $dir . ' as file');
         }
     }
@@ -308,20 +309,20 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 
     public function notReadableTest($dir)
     {
-        $stat = stat($this->_maildir . '/' . $dir);
-        chmod($this->_maildir . '/' . $dir, 0);
+        $stat = stat($this->maildir . '/' . $dir);
+        chmod($this->maildir . '/' . $dir, 0);
 
         $check = false;
         try {
-            $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+            $mail = new Storage\Maildir(['dirname' => $this->maildir]);
         } catch (\Exception $e) {
             $check = true;
             // test ok
         }
 
-        chmod($this->_maildir . '/' . $dir, $stat['mode']);
+        chmod($this->maildir . '/' . $dir, $stat['mode']);
 
-        if (!$check) {
+        if (! $check) {
             $this->fail('no exception while loading invalid dir with ' . $dir . ' not readable');
         }
     }
@@ -338,7 +339,7 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 
     public function testCountFlags()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
         $this->assertEquals($mail->countMessages(Storage::FLAG_DELETED), 0);
         $this->assertEquals($mail->countMessages(Storage::FLAG_RECENT), 1);
         $this->assertEquals($mail->countMessages(Storage::FLAG_FLAGGED), 1);
@@ -349,21 +350,27 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 
     public function testFetchPart()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
         $this->assertEquals($mail->getMessage(4)->getPart(2)->contentType, 'text/x-vertical');
     }
 
     public function testPartSize()
     {
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
         $this->assertEquals($mail->getMessage(4)->getPart(2)->getSize(), 88);
     }
 
     public function testSizePlusPlus()
     {
-        rename($this->_maildir . '/cur/1000000000.P1.example.org:2,S', $this->_maildir . '/cur/1000000000.P1.example.org,S=123:2,S');
-        rename($this->_maildir . '/cur/1000000001.P1.example.org:2,FS', $this->_maildir . '/cur/1000000001.P1.example.org,S=456:2,FS');
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        rename(
+            $this->maildir . '/cur/1000000000.P1.example.org:2,S',
+            $this->maildir . '/cur/1000000000.P1.example.org,S=123:2,S'
+        );
+        rename(
+            $this->maildir . '/cur/1000000001.P1.example.org:2,FS',
+            $this->maildir . '/cur/1000000001.P1.example.org,S=456:2,FS'
+        );
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
         $shouldSizes = [1 => 123, 456, 694, 452, 497];
 
 
@@ -373,8 +380,11 @@ class MaildirTest extends \PHPUnit_Framework_TestCase
 
     public function testSingleSizePlusPlus()
     {
-        rename($this->_maildir . '/cur/1000000001.P1.example.org:2,FS', $this->_maildir . '/cur/1000000001.P1.example.org,S=456:2,FS');
-        $mail = new Storage\Maildir(['dirname' => $this->_maildir]);
+        rename(
+            $this->maildir . '/cur/1000000001.P1.example.org:2,FS',
+            $this->maildir . '/cur/1000000001.P1.example.org,S=456:2,FS'
+        );
+        $mail = new Storage\Maildir(['dirname' => $this->maildir]);
 
         $size = $mail->getSize(2);
         $this->assertEquals(456, $size);

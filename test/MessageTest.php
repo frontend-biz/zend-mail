@@ -3,15 +3,17 @@
  * Zend Framework (http://framework.zend.com/)
  *
  * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright Copyright (c) 2005-2016 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   http://framework.zend.com/license/new-bsd New BSD License
  */
 
 namespace ZendTest\Mail;
 
+use PHPUnit\Framework\TestCase;
 use stdClass;
 use Zend\Mail\Address;
 use Zend\Mail\AddressList;
+use Zend\Mail\Exception;
 use Zend\Mail\Header;
 use Zend\Mail\Headers;
 use Zend\Mail\Message;
@@ -21,8 +23,9 @@ use Zend\Mime\Part as MimePart;
 
 /**
  * @group      Zend_Mail
+ * @covers Zend\Mail\Message<extended>
  */
-class MessageTest extends \PHPUnit_Framework_TestCase
+class MessageTest extends TestCase
 {
     /** @var Message */
     public $message;
@@ -157,6 +160,13 @@ class MessageTest extends \PHPUnit_Framework_TestCase
         $this->assertNull($this->message->getSender());
     }
 
+    public function testNullSenderDoesNotCreateHeader()
+    {
+        $sender = $this->message->getSender();
+        $headers = $this->message->getHeaders();
+        $this->assertFalse($headers->has('sender'));
+    }
+
     public function testSettingSenderCreatesAddressObject()
     {
         $this->message->setSender('zf-devteam@example.com');
@@ -192,6 +202,16 @@ class MessageTest extends \PHPUnit_Framework_TestCase
     public function testCanAddFromAddressUsingName()
     {
         $this->message->addFrom('zf-devteam@example.com', 'ZF DevTeam');
+        $addresses = $this->message->getFrom();
+        $this->assertEquals(1, count($addresses));
+        $address = $addresses->current();
+        $this->assertEquals('zf-devteam@example.com', $address->getEmail());
+        $this->assertEquals('ZF DevTeam', $address->getName());
+    }
+
+    public function testCanAddFromAddressUsingEmailAndNameAsString()
+    {
+        $this->message->addFrom('ZF DevTeam <zf-devteam@example.com>');
         $addresses = $this->message->getFrom();
         $this->assertEquals(1, count($addresses));
         $address = $addresses->current();
@@ -514,7 +534,7 @@ class MessageTest extends \PHPUnit_Framework_TestCase
      */
     public function testSettingNonScalarNonMimeNonStringSerializableValueForBodyRaisesException($body)
     {
-        $this->setExpectedException('Zend\Mail\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Exception\InvalidArgumentException');
         $this->message->setBody($body);
     }
 
@@ -685,6 +705,21 @@ class MessageTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @group 45
+     */
+    public function testCanRestoreFromSerializedStringWhenBodyContainsMultipleNewlines()
+    {
+        $this->message->addTo('zf-devteam@example.com', 'ZF DevTeam');
+        $this->message->addFrom('matthew@example.com', "Matthew Weier O'Phinney");
+        $this->message->addCc('zf-contributors@example.com', 'ZF Contributors List');
+        $this->message->setSubject('This is a subject');
+        $this->message->setBody("foo\n\ntest");
+        $serialized      = $this->message->toString();
+        $restoredMessage = Message::fromString($serialized);
+        $this->assertEquals($serialized, $restoredMessage->toString());
+    }
+
+    /**
      * @group ZF2-5962
      */
     public function testPassEmptyArrayIntoSetPartsOfMimeMessageShouldReturnEmptyBodyString()
@@ -724,7 +759,7 @@ class MessageTest extends \PHPUnit_Framework_TestCase
             '',
             '<html><body><iframe src="http://example.com/"></iframe></body></html> <!--',
         ];
-        $this->setExpectedException('Zend\Mail\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Exception\InvalidArgumentException');
         $this->message->{$recipientMethod}(implode(Headers::EOL, $subject));
     }
 
@@ -779,5 +814,57 @@ class MessageTest extends \PHPUnit_Framework_TestCase
         $this->assertInstanceOf('Zend\Mail\Header\ContentType', $contentType);
         $this->assertContains('multipart/alternative', $contentType->getFieldValue());
         $this->assertContains($multipartContent->getMime()->boundary(), $contentType->getFieldValue());
+    }
+
+    /**
+     * @group 19
+     */
+    public function testCanParseMultipartReport()
+    {
+        $raw = file_get_contents(__DIR__ . '/_files/zend-mail-19.txt');
+        $message = Message::fromString($raw);
+        $this->assertInstanceOf(Message::class, $message);
+        $this->assertInternalType('string', $message->getBody());
+
+        $headers = $message->getHeaders();
+        $this->assertCount(8, $headers);
+        $this->assertTrue($headers->has('Date'));
+        $this->assertTrue($headers->has('From'));
+        $this->assertTrue($headers->has('Message-Id'));
+        $this->assertTrue($headers->has('To'));
+        $this->assertTrue($headers->has('MIME-Version'));
+        $this->assertTrue($headers->has('Content-Type'));
+        $this->assertTrue($headers->has('Subject'));
+        $this->assertTrue($headers->has('Auto-Submitted'));
+
+        $contentType = $headers->get('Content-Type');
+        $this->assertEquals('multipart/report', $contentType->getType());
+    }
+
+    public function testMailHeaderContainsZeroValue()
+    {
+        $message =
+            "From: someone@example.com\r\n"
+            ."To: someone@example.com\r\n"
+            ."Subject: plain text email example\r\n"
+            ."X-Spam-Score: 0\r\n"
+            ."X-Some-Value: 1\r\n"
+            ."\r\n"
+            ."I am a test message\r\n";
+
+        $msg = Message::fromString($message);
+        $this->assertContains('X-Spam-Score: 0', $msg->toString());
+    }
+
+    /**
+     * @ref CVE-2016-10033 which targeted WordPress
+     */
+    public function testSecondCodeInjectionInFromHeader()
+    {
+        $message = new Message();
+        $this->expectException(Exception\InvalidArgumentException::class);
+        // @codingStandardsIgnoreStart
+        $message->setFrom('user@xenial(tmp1 -be ${run{${substr{0}{1}{$spool_directory}}usr${substr{0}{1}{$spool_directory}}bin${substr{0}{1}{$spool_directory}}touch${substr{10}{1}{$tod_log}}${substr{0}{1}{$spool_directory}}tmp${substr{0}{1}{$spool_directory}}test}}  tmp2)', 'Sender\'s name');
+        // @codingStandardsIgnoreEnd
     }
 }

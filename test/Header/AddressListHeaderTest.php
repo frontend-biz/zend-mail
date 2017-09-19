@@ -3,12 +3,13 @@
  * Zend Framework (http://framework.zend.com/)
  *
  * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright Copyright (c) 2005-2016 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   http://framework.zend.com/license/new-bsd New BSD License
  */
 
 namespace ZendTest\Mail\Header;
 
+use PHPUnit\Framework\TestCase;
 use Zend\Mail\Address;
 use Zend\Mail\AddressList;
 use Zend\Mail\Header\Bcc;
@@ -20,7 +21,7 @@ use Zend\Mail\Header\To;
 /**
  * @group      Zend_Mail
  */
-class AddressListHeaderTest extends \PHPUnit_Framework_TestCase
+class AddressListHeaderTest extends TestCase
 {
     public static function getHeaderInstances()
     {
@@ -84,7 +85,9 @@ class AddressListHeaderTest extends \PHPUnit_Framework_TestCase
 
     public function getExpectedFieldValue()
     {
+        // @codingStandardsIgnoreStart
         return "ZF DevTeam <zf-devteam@zend.com>,\r\n zf-contributors@lists.zend.com,\r\n ZF Announce List <fw-announce@lists.zend.com>,\r\n \"Last, First\" <first@last.zend.com>";
+        // @codingStandardsIgnoreEnd
     }
 
     /**
@@ -146,6 +149,26 @@ class AddressListHeaderTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @dataProvider getHeadersWithComments
+     */
+    public function testDeserializationFromStringWithComments($value)
+    {
+        $header = From::fromString($value);
+        $list = $header->getAddressList();
+        $this->assertEquals(1, count($list));
+        $this->assertTrue($list->has('user@example.com'));
+    }
+
+    public function getHeadersWithComments()
+    {
+        return [
+            ['From: user@example.com (Comment)'],
+            ['From: user@example.com (Comm\\)ent)'],
+            ['From: (Comment\\\\)user@example.com(Another)'],
+        ];
+    }
+
+    /**
      * @group 3789
      * @dataProvider getStringHeadersWithNoWhitespaceSeparator
      */
@@ -168,5 +191,60 @@ class AddressListHeaderTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('ZF Announce List', $address->getName());
         $address = $list->get('first@last.zend.com');
         $this->assertEquals('Last, First', $address->getName());
+    }
+
+    /**
+     * @dataProvider getAddressListsWithGroup
+     */
+    public function testAddressListWithGroup($input, $count, $sample)
+    {
+        $header = To::fromString($input);
+        $list = $header->getAddressList();
+        $this->assertEquals($count, count($list));
+        if ($count > 0) {
+            $this->assertTrue($list->has($sample));
+        }
+    }
+
+    public function getAddressListsWithGroup()
+    {
+        return [
+            ['To: undisclosed-recipients:;', 0, null],
+            ['To: friends: john@example.com; enemies: john@example.net, bart@example.net;', 3, 'john@example.net'],
+        ];
+    }
+
+    public function specialCharHeaderProvider()
+    {
+        return [
+            [
+                "To: =?UTF-8?B?dGVzdCxsYWJlbA==?= <john@example.com>, john2@example.com",
+                ['john@example.com' => 'test,label', 'john2@example.com' => null],
+                'UTF-8'
+            ],
+            [
+                'To: "TEST\",QUOTE" <john@example.com>, john2@example.com',
+                ['john@example.com' => 'TEST",QUOTE', 'john2@example.com' => null],
+                'ASCII'
+            ]
+        ];
+    }
+
+    /**
+     * @dataProvider specialCharHeaderProvider
+     */
+    public function testDeserializationFromSpecialCharString($headerLine, $expected, $encoding)
+    {
+        $header = To::fromString($headerLine);
+
+        $expectedTo = new To();
+        $addressList = $expectedTo->getAddressList();
+        $addressList->addMany($expected);
+        $expectedTo->setEncoding($encoding);
+        $this->assertEquals($expectedTo, $header);
+        foreach ($expected as $k => $v) {
+            $this->assertTrue($addressList->has($k));
+            $this->assertEquals($addressList->get($k)->getName(), $v);
+        }
     }
 }

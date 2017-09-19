@@ -3,18 +3,20 @@
  * Zend Framework (http://framework.zend.com/)
  *
  * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright Copyright (c) 2005-2016 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   http://framework.zend.com/license/new-bsd New BSD License
  */
 
 namespace ZendTest\Mail\Header;
 
+use PHPUnit\Framework\TestCase;
 use Zend\Mail\Header;
 
 /**
  * @group      Zend_Mail
+ * @covers Zend\Mail\Header\Received<extended>
  */
-class ReceivedTest extends \PHPUnit_Framework_TestCase
+class ReceivedTest extends TestCase
 {
     public function testFromStringCreatesValidReceivedHeader()
     {
@@ -66,7 +68,7 @@ class ReceivedTest extends \PHPUnit_Framework_TestCase
      */
     public function testRaisesExceptionViaFromStringOnDetectionOfCrlfInjection($header)
     {
-        $this->setExpectedException('Zend\Mail\Header\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Header\Exception\InvalidArgumentException');
         $received = Header\Received::fromString($header);
     }
 
@@ -86,7 +88,7 @@ class ReceivedTest extends \PHPUnit_Framework_TestCase
      */
     public function testConstructorRaisesExceptionOnValueWithCRLFInjectionAttempt($value)
     {
-        $this->setExpectedException('Zend\Mail\Header\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Header\Exception\InvalidArgumentException');
         new Header\Received($value);
     }
 }

@@ -3,18 +3,19 @@
  * Zend Framework (http://framework.zend.com/)
  *
  * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright Copyright (c) 2005-2016 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   http://framework.zend.com/license/new-bsd New BSD License
  */
 
 namespace ZendTest\Mail\Transport;
 
+use PHPUnit\Framework\TestCase;
 use Zend\Mail\Transport\Null as NullTransport;
 
 /**
  * @group      Zend_Mail
  */
-class NullTest extends \PHPUnit_Framework_TestCase
+class NullTest extends TestCase
 {
     public function setUp()
     {
@@ -25,7 +26,7 @@ class NullTest extends \PHPUnit_Framework_TestCase
 
     public function testRaisesNoticeOnInstantiation()
     {
-        $this->setExpectedException('PHPUnit_Framework_Error_Deprecated');
+        $this->expectException('PHPUnit_Framework_Error_Deprecated');
         new NullTransport();
     }
 }

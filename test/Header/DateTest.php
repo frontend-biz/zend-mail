@@ -3,15 +3,18 @@
  * Zend Framework (http://framework.zend.com/)
  *
  * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright Copyright (c) 2005-2016 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   http://framework.zend.com/license/new-bsd New BSD License
  */
 
 namespace ZendTest\Mail\Header;
 
-use PHPUnit_Framework_TestCase as TestCase;
+use PHPUnit\Framework\TestCase;
 use Zend\Mail\Header;
 
+/**
+ * @covers Zend\Mail\Header\Date<extended>
+ */
 class DateTest extends TestCase
 {
     public function headerLines()
@@ -30,7 +33,7 @@ class DateTest extends TestCase
      */
     public function testFromStringRaisesExceptionOnCrlfInjectionAttempt($header)
     {
-        $this->setExpectedException('Zend\Mail\Header\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Header\Exception\InvalidArgumentException');
         Header\Date::fromString($header);
     }
 
@@ -39,7 +42,7 @@ class DateTest extends TestCase
      */
     public function testPreventsCRLFInjectionViaConstructor()
     {
-        $this->setExpectedException('Zend\Mail\Header\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Header\Exception\InvalidArgumentException');
         $address = new Header\Date("This\ris\r\na\nCRLF Attack");
     }
 }

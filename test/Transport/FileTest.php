@@ -3,25 +3,27 @@
  * Zend Framework (http://framework.zend.com/)
  *
  * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright Copyright (c) 2005-2016 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   http://framework.zend.com/license/new-bsd New BSD License
  */
 
 namespace ZendTest\Mail\Transport;
 
+use PHPUnit\Framework\TestCase;
 use Zend\Mail\Message;
 use Zend\Mail\Transport\File;
 use Zend\Mail\Transport\FileOptions;
 
 /**
  * @group      Zend_Mail
+ * @covers Zend\Mail\Transport\File<extended>
  */
-class FileTest extends \PHPUnit_Framework_TestCase
+class FileTest extends TestCase
 {
     public function setUp()
     {
         $this->tempDir = sys_get_temp_dir() . '/mail_file_transport';
-        if (!is_dir($this->tempDir)) {
+        if (! is_dir($this->tempDir)) {
             mkdir($this->tempDir);
         } else {
             $this->cleanup($this->tempDir);

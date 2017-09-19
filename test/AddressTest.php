@@ -3,15 +3,19 @@
  * Zend Framework (http://framework.zend.com/)
  *
  * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright Copyright (c) 2005-2016 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   http://framework.zend.com/license/new-bsd New BSD License
  */
 
 namespace ZendTest\Mail;
 
+use PHPUnit\Framework\TestCase;
 use Zend\Mail\Address;
 
-class AddressTest extends \PHPUnit_Framework_TestCase
+/**
+ * @covers Zend\Mail\Address<extended>
+ */
+class AddressTest extends TestCase
 {
     public function testDoesNotRequireNameForInstantiation()
     {
@@ -41,7 +45,7 @@ class AddressTest extends \PHPUnit_Framework_TestCase
      */
     public function testSetAddressInvalidAddressObject($email, $name)
     {
-        $this->setExpectedException('Zend\Mail\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Exception\InvalidArgumentException');
         new Address($email, $name);
     }
 
@@ -62,6 +66,25 @@ class AddressTest extends \PHPUnit_Framework_TestCase
             ["foo@bar", "\r\n"],
             ["foo@bar", "foo\r\nevilBody"],
             ["foo@bar", "\r\nevilBody"],
+        ];
+    }
+
+    /**
+     * @dataProvider validSenderDataProvider
+     * @param string $email
+     * @param null|string $name
+     */
+    public function testSetAddressValidAddressObject($email, $name)
+    {
+        $address = new Address($email, $name);
+        $this->assertInstanceOf('\Zend\Mail\Address', $address);
+    }
+
+    public function validSenderDataProvider()
+    {
+        return [
+            // Description => [sender address, sender name],
+            'german IDN' => ['oau@ä-umlaut.de', null],
         ];
     }
 }

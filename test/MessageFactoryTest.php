@@ -3,18 +3,20 @@
  * Zend Framework (http://framework.zend.com/)
  *
  * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright Copyright (c) 2005-2016 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   http://framework.zend.com/license/new-bsd New BSD License
  */
 
 namespace ZendTest\Mail;
 
+use PHPUnit\Framework\TestCase;
 use Zend\Mail\MessageFactory;
 
 /**
  * @group      Zend_Mail
+ * @covers Zend\Mail\MessageFactory<extended>
  */
-class MessageFactoryTest extends \PHPUnit_Framework_TestCase
+class MessageFactoryTest extends TestCase
 {
     public function testConstructMessageWithOptions()
     {
@@ -116,7 +118,7 @@ class MessageFactoryTest extends \PHPUnit_Framework_TestCase
      */
     public function testExceptionForOptionsNotArrayOrTraversable($options)
     {
-        $this->setExpectedException('Zend\Mail\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Exception\InvalidArgumentException');
         MessageFactory::getInstance($options);
     }
 }

@@ -3,18 +3,20 @@
  * Zend Framework (http://framework.zend.com/)
  *
  * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright Copyright (c) 2005-2016 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   http://framework.zend.com/license/new-bsd New BSD License
  */
 
 namespace ZendTest\Mail\Header;
 
+use PHPUnit\Framework\TestCase;
 use Zend\Mail\Header\ContentTransferEncoding;
 
 /**
  * @group      Zend_Mail
+ * @covers Zend\Mail\Header\ContentTransferEncoding<extended>
  */
-class ContentTransferEncodingTest extends \PHPUnit_Framework_TestCase
+class ContentTransferEncodingTest extends TestCase
 {
     public function dataValidEncodings()
     {
@@ -49,7 +51,7 @@ class ContentTransferEncodingTest extends \PHPUnit_Framework_TestCase
      */
     public function testContentTransferEncodingFromStringRaisesException($encoding)
     {
-        $this->setExpectedException('Zend\Mail\Header\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Header\Exception\InvalidArgumentException');
         $contentTransferEncodingHeader = ContentTransferEncoding::fromString('Content-Transfer-Encoding: '.$encoding);
     }
 
@@ -103,7 +105,7 @@ class ContentTransferEncodingTest extends \PHPUnit_Framework_TestCase
      */
     public function testFromStringRaisesExceptionOnInvalidHeaderName()
     {
-        $this->setExpectedException('Zend\Mail\Header\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Header\Exception\InvalidArgumentException');
         ContentTransferEncoding::fromString('Content-Transfer-Encoding' . chr(32) . ': 8bit');
     }
 
@@ -119,11 +121,10 @@ class ContentTransferEncodingTest extends \PHPUnit_Framework_TestCase
     /**
      * @dataProvider headerLines
      * @group ZF2015-04
-     * @expectedException Zend\Mail\Header\Exception\InvalidArgumentException
      */
     public function testFromStringRaisesExceptionForInvalidMultilineValues($headerLine)
     {
-        $this->setExpectedException('Zend\Mail\Header\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Header\Exception\InvalidArgumentException');
         ContentTransferEncoding::fromString($headerLine);
     }
 
@@ -132,7 +133,8 @@ class ContentTransferEncodingTest extends \PHPUnit_Framework_TestCase
      */
     public function testFromStringRaisesExceptionForContinuations()
     {
-        $this->setExpectedException('Zend\Mail\Header\Exception\InvalidArgumentException', 'expects');
+        $this->expectException('Zend\Mail\Header\Exception\InvalidArgumentException');
+        $this->expectExceptionMessage('expects');
         ContentTransferEncoding::fromString("Content-Transfer-Encoding: 8bit\r\n 7bit");
     }
 
@@ -142,7 +144,8 @@ class ContentTransferEncodingTest extends \PHPUnit_Framework_TestCase
     public function testSetTransferEncodingRaisesExceptionForInvalidValues()
     {
         $header = new ContentTransferEncoding();
-        $this->setExpectedException('Zend\Mail\Header\Exception\InvalidArgumentException', 'expects');
+        $this->expectException('Zend\Mail\Header\Exception\InvalidArgumentException');
+        $this->expectExceptionMessage('expects');
         $header->setTransferEncoding("8bit\r\n 7bit");
     }
 }

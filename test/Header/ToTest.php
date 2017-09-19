@@ -3,12 +3,13 @@
  * Zend Framework (http://framework.zend.com/)
  *
  * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright Copyright (c) 2005-2016 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   http://framework.zend.com/license/new-bsd New BSD License
  */
 
 namespace ZendTest\Mail\Header;
 
+use PHPUnit\Framework\TestCase;
 use Zend\Mail\Header;
 
 /**
@@ -16,8 +17,9 @@ use Zend\Mail\Header;
  * header folding and MIME encoding properly.
  *
  * @group      Zend_Mail
+ * @covers Zend\Mail\Header\To<extended>
  */
-class ToTest extends \PHPUnit_Framework_TestCase
+class ToTest extends TestCase
 {
     public function testHeaderFoldingOccursProperly()
     {
@@ -47,7 +49,7 @@ class ToTest extends \PHPUnit_Framework_TestCase
      */
     public function testFromStringRaisesExceptionWhenCrlfInjectionIsDetected($header)
     {
-        $this->setExpectedException('Zend\Mail\Header\Exception\InvalidArgumentException');
+        $this->expectException('Zend\Mail\Header\Exception\InvalidArgumentException');
         Header\To::fromString($header);
     }
 }
